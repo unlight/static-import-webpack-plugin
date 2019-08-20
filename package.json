@@ -84,7 +84,8 @@
     "typescript": "~3.5.3",
     "watchexec-bin": "^1.0.0",
     "webpack": "^4.39.2",
-    "webpack-cli": "^3.3.6"
+    "webpack-cli": "^3.3.6",
+    "webpack-sources": "^1.4.3"
   },
   "config": {
     "commitizen": {
