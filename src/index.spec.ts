@@ -87,3 +87,12 @@ it('static import with options', async () => {
         .find((value, index) => index === 0);
     expect(output).toContain(`import './foo'`);
 });
+
+fit('static import all', async () => {
+    fs.writeFileSync('/src/entry.js', `import * as all /* webpackIgnore: true */ from './all'`);
+    const stats = await compile();
+    const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
+    expect(output).toContain(`import * as all from './all'`);
+});
+
+it.todo('multiple static import');
