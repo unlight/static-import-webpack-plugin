@@ -1,4 +1,4 @@
-import * as lib from './index';
+/* tslint:disable:no-implicit-dependencies no-any */
 import * as webpack from 'webpack';
 import { esmImportPlugin } from '.';
 import MemoryFS = require('memory-fs');
@@ -31,15 +31,15 @@ const compiler = webpack({
 
 compiler.inputFileSystem = fs;
 compiler.outputFileSystem = fs;
-(compiler as any).resolvers.normal.fileSystem = fs;
-(compiler as any).resolvers.context.fileSystem = fs;
+(<any>compiler).resolvers.normal.fileSystem = fs;
+(<any>compiler).resolvers.context.fileSystem = fs;
 
-function compile() {
+async function compile() {
     esmImportPlugin(compiler);
     return new Promise<webpack.Stats>((resolve, reject) => {
-        compiler.run((err, stats) => {
-            if (err) {
-                return reject(err);
+        compiler.run((error, stats) => {
+            if (error) {
+                return reject(error);
             }
             resolve(stats);
         });
@@ -78,9 +78,7 @@ it('import smoke', async () => {
 });
 
 it('static import with options', async () => {
-    // fs.writeFileSync('/src/foo.js', `export const foo = () => console.log('foo')`);
-    // fs.writeFileSync('/src/bar.js', `console.log('bar')`);
-    fs.writeFileSync('/src/entry.js', `import /* webpackIgnore: true */ './foo';`);
+    fs.writeFileSync('/src/entry.js', `import /* webpackIgnore: true */ './foo'`);
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source())
         .split('\n')
@@ -88,7 +86,7 @@ it('static import with options', async () => {
     expect(output).toContain(`import './foo'`);
 });
 
-fit('static import all', async () => {
+it('static import all', async () => {
     fs.writeFileSync('/src/entry.js', `import * as all /* webpackIgnore: true */ from './all'`);
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());

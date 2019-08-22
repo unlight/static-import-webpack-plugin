@@ -1,5 +1,5 @@
 # esm-import-webpack-plugin
-Allow to keep static import in webpack bundle by using special comment.
+Allow to keep static import in webpack bundle by using special comment
 
 ## Install
 ```sh

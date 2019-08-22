@@ -2,13 +2,20 @@
   "name": "esm-import-webpack-plugin",
   "version": "0.0.0-dev",
   "license": "MIT",
-  "description": "",
+  "description": "Allow to keep static import in webpack bundle by using special comment",
   "main": "index.js",
   "typings": "index.d.ts",
   "author": "2019",
   "keywords": [],
   "engines": {
     "node": ">=8.3"
+  },
+  "dependencies": {
+    "astring": "^1.4.1"
+  },
+  "peerDependencies": {
+    "webpack": "4",
+    "webpack-sources": "1"
   },
   "scripts": {
     "dev": "node node_modules/webpack-dev-server/bin/webpack-dev-server",
