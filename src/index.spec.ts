@@ -103,3 +103,16 @@ it('multiple static import', async () => {
     expect(output).toContain(`import pokemon from './pokemon'`);
     expect(output).toContain(`import * as bundledUnicorn from './unicorn'`);
 });
+
+
+fit('referencing ignored static import in bundle', async () => {
+    fs.writeFileSync('/src/entry.js', `
+        import pokemon /* webpackIgnore: true */ from 'http://example.com/pokemon'
+        console.log(typeof pokemon);
+        `);
+    const stats = await compile();
+    const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
+    console.log("output", output);
+    expect(output).toContain(`import pokemon from 'http://example.com/pokemon'`);
+    expect(output).not.toContain(`MODULE_NOT_FOUND`);
+});
