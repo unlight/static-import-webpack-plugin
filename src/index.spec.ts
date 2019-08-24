@@ -1,4 +1,4 @@
-/* tslint:disable:no-implicit-dependencies no-any */
+/* tslint:disable:no-implicit-dependencies no-any no-duplicate-string */
 import * as webpack from 'webpack';
 import { staticImportWebpackPlugin } from '.';
 import MemoryFS = require('memory-fs');
@@ -80,10 +80,9 @@ it('import smoke', async () => {
 it('static import with options', async () => {
     fs.writeFileSync('/src/entry.js', `import /* webpackIgnore: true */ './foo'`);
     const stats = await compile();
-    const output = removeWebpackProlog(stats.compilation.assets['output.js'].source())
-        .split('\n')
-        .find((value, index) => index === 0);
+    const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
     expect(output).toContain(`import './foo'`);
+    expect(output).not.toContain(`import /* webpackIgnore: true */ './foo'`);
 });
 
 it('static import all', async () => {
@@ -91,6 +90,7 @@ it('static import all', async () => {
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
     expect(output).toContain(`import * as all from './all'`);
+    expect(output).not.toContain(`import * as all /* webpackIgnore: true */ from './all'`);
 });
 
 it('multiple static import', async () => {
@@ -102,17 +102,19 @@ it('multiple static import', async () => {
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
     expect(output).toContain(`import pokemon from './pokemon'`);
     expect(output).toContain(`import * as bundledUnicorn from './unicorn'`);
+    expect(output).not.toContain(`import pokemon /* webpackIgnore: true */ from './pokemon'`);
+    expect(output).not.toContain(`import /* webpackIgnore: true */ * as bundledUnicorn from './unicorn'`);
 });
 
-
-fit('referencing ignored static import in bundle', async () => {
+it('referencing ignored static import in bundle', async () => {
     fs.writeFileSync('/src/entry.js', `
-        import pokemon /* webpackIgnore: true */ from 'http://example.com/pokemon'
+        import pokemon /* webpackIgnore: true */ from 'http://example.com/pokemon';
+        pokemon('hi');
         console.log(typeof pokemon);
+        export { pokemon };
         `);
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
-    console.log("output", output);
     expect(output).toContain(`import pokemon from 'http://example.com/pokemon'`);
     expect(output).not.toContain(`MODULE_NOT_FOUND`);
 });
