@@ -1,6 +1,6 @@
 # static-import-webpack-plugin
 Moves static import in webpack bundle to top level by using special comment `/* webpackIgnore: true */`.
-With combination [esm-webpack-plugin](https://github.com/purtuga/esm-webpack-plugin) allow to generate EcmasScript module.
+With combination [esm-webpack-plugin](https://github.com/purtuga/esm-webpack-plugin) allow to generate EcmaScript module.
 
 ## Install
 ```sh
