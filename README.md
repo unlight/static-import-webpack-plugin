@@ -11,9 +11,11 @@ npm install --save-dev static-import-webpack-plugin
 
 ### Webpack Config
 ```js
-const staticImportWebpackPlugin = require('static-import-webpack-plugin');
+const StaticImportWebpackPlugin = require('static-import-webpack-plugin');
 // Add to plugins array
-staticImportWebpackPlugin()
+plugins: [
+    new StaticImportWebpackPlugin(),
+],
 // Other config settings
 entry: './src/entry.js',
 output: {
@@ -29,8 +31,8 @@ export default 'unicorn'
 ```
 ```js
 // /src/entry.js
-import unicorn /* webpackIgnore: true */ from './unicorn';
-import * as bundledUnicorn from './unicorn';
+import pokemon /* webpackIgnore: true */ from './pokemon';
+import unicorn from './unicorn';
 ```
 
 ### Output
@@ -41,3 +43,13 @@ var $lib = ... // webpackBootstrap + bundled unicorn
 
 ## Related Projects
 - https://github.com/purtuga/esm-webpack-plugin
+
+## Development
+
+### Example
+```sh
+npx ts-node node_modules/webpack/bin/webpack.js --config example/webpack.config.js
+```
+```
+node --inspect-brk c:/nodejs/node_modules/ts-node/dist/bin.js node_modules/webpack/bin/webpack.js --config example/webpack.config.js
+```

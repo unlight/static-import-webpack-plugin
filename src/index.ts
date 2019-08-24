@@ -4,6 +4,10 @@ import * as CommentCompilationWarning from 'webpack/lib/CommentCompilationWarnin
 import { ConcatSource } from 'webpack-sources';
 import { generate } from 'astring';
 
+export class StaticImportWebpackPlugin {
+    apply = staticImportWebpackPlugin;
+}
+
 export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
 
     const importSources = new WeakMap();
