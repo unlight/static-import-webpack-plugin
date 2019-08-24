@@ -4,11 +4,11 @@ import * as CommentCompilationWarning from 'webpack/lib/CommentCompilationWarnin
 import { ConcatSource } from 'webpack-sources';
 import { generate } from 'astring';
 
-export function esmImportPlugin(compiler: webpack.Compiler) {
+export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
 
     const importSources = new WeakMap();
 
-    compiler.hooks.thisCompilation.tap('EsmImportPlugin.thisCompilation', (compilation, params) => {
+    compiler.hooks.thisCompilation.tap('StaticImport.thisCompilation', (compilation, params) => {
         const { normalModuleFactory } = params as (typeof params & { contextModuleFactory: any, compilationDependencies: Set<any> });
 
         function importHandler(parser, statement, source) {
@@ -17,7 +17,7 @@ export function esmImportPlugin(compiler: webpack.Compiler) {
             if (errors) {
                 for (const error of errors) {
                     const warning = new CommentCompilationWarning(
-                        `Compilation error while processing magic comment(-s): /*${error.comment.value}*/: ${error.message}`,
+                        `Compilation error while processing comment(-s): /*${error.comment.value}*/: ${error.message}`,
                         parser.state.module,
                         error.comment.loc
                     );
@@ -40,11 +40,11 @@ export function esmImportPlugin(compiler: webpack.Compiler) {
 
         normalModuleFactory.hooks.parser
             .for('javascript/auto')
-            .tap('EsmImportPlugin.normalModuleFactory.parser', (parser, parserOptions) => {
-                parser.hooks.import.tap('EsmImportPlugin.parser.import', importHandler.bind(null, parser));
+            .tap('StaticImport.normalModuleFactory.parser', (parser, parserOptions) => {
+                parser.hooks.import.tap('StaticImport.parser.import', importHandler.bind(null, parser));
             });
 
-        compilation.hooks.optimizeChunkAssets.tap('esmImportPlugin.compilation.optimizeChunkAssets', (chunks) => {
+        compilation.hooks.optimizeChunkAssets.tap('StaticImport.compilation.optimizeChunkAssets', (chunks) => {
             chunks.forEach(chunk => {
                 if (importSources.has(chunk.entryModule)) {
                     chunk.files.forEach(fileName => {

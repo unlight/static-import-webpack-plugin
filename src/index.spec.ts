@@ -1,6 +1,6 @@
 /* tslint:disable:no-implicit-dependencies no-any */
 import * as webpack from 'webpack';
-import { esmImportPlugin } from '.';
+import { staticImportWebpackPlugin } from '.';
 import MemoryFS = require('memory-fs');
 
 const fs = new MemoryFS();
@@ -35,7 +35,7 @@ compiler.outputFileSystem = fs;
 (<any>compiler).resolvers.context.fileSystem = fs;
 
 async function compile() {
-    esmImportPlugin(compiler);
+    staticImportWebpackPlugin(compiler);
     return new Promise<webpack.Stats>((resolve, reject) => {
         compiler.run((error, stats) => {
             if (error) {
@@ -93,4 +93,13 @@ it('static import all', async () => {
     expect(output).toContain(`import * as all from './all'`);
 });
 
-it.todo('multiple static import');
+it('multiple static import', async () => {
+    fs.writeFileSync('/src/entry.js', `
+        import pokemon /* webpackIgnore: true */ from './pokemon';
+        import /* webpackIgnore: true */ * as bundledUnicorn from './unicorn';
+        `);
+    const stats = await compile();
+    const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
+    expect(output).toContain(`import pokemon from './pokemon'`);
+    expect(output).toContain(`import * as bundledUnicorn from './unicorn'`);
+});

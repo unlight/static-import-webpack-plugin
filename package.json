@@ -1,8 +1,8 @@
 {
-  "name": "esm-import-webpack-plugin",
+  "name": "static-import-webpack-plugin",
   "version": "0.0.0-dev",
   "license": "MIT",
-  "description": "Allow to keep static import in webpack bundle by using special comment",
+  "description": "Moves static import in webpack bundle to top level by using special comment",
   "main": "index.js",
   "typings": "index.d.ts",
   "author": "2019",
