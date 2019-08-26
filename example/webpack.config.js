@@ -10,6 +10,9 @@ module.exports = {
         libraryTarget: 'var',
         library: '$lib',
     },
+    resolve: {
+        extensions: ['.js', '.ts', '.tsx', '.json'],
+    },
     plugins: [
         new StaticImportWebpackPlugin(),
     ],

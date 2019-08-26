@@ -5,41 +5,50 @@ import MemoryFS = require('memory-fs');
 
 const fs = new MemoryFS();
 
-const compiler = webpack({
-    context: '/src',
-    entry: './entry.js',
-    mode: 'development',
-    devtool: false,
-    module: {
-        rules: [
-            {
-                parser: {
-                    amd: false,
-                    system: false,
-                    harmony: true,
-                }
-            },
-        ],
-    },
-    output: {
-        filename: 'output.js',
-        path: '/dist',
-        libraryTarget: 'var',
-        library: '$lib',
-    },
-});
+async function compile(customOptions = {}) {
+    const options = Object.assign({
+        context: '/',
+        entry: '/entry',
+        mode: 'development',
+        devtool: false,
+        resolve: {
+            extensions: ['.js', '.ts', '.tsx', '.json'],
+        },
+        module: {
+            rules: [
+                {
+                    parser: {
+                        amd: false,
+                        system: false,
+                        harmony: true,
+                    }
+                },
+            ],
+        },
+        output: {
+            filename: 'output.js',
+            path: '/dist',
+            libraryTarget: 'var',
+            library: '$lib',
+        },
+    }, customOptions);
+    const compiler = webpack(<any>options);
 
-compiler.inputFileSystem = fs;
-compiler.outputFileSystem = fs;
-(<any>compiler).resolvers.normal.fileSystem = fs;
-(<any>compiler).resolvers.context.fileSystem = fs;
+    compiler.inputFileSystem = fs;
+    compiler.outputFileSystem = fs;
+    (<any>compiler).resolvers.normal.fileSystem = fs;
+    (<any>compiler).resolvers.context.fileSystem = fs;
 
-async function compile() {
     staticImportWebpackPlugin(compiler);
     return new Promise<webpack.Stats>((resolve, reject) => {
         compiler.run((error, stats) => {
             if (error) {
                 return reject(error);
+            }
+            let { errors, warnings } = stats.toJson({ all: true });
+            errors = [...errors, ...warnings];
+            if (errors.length > 0) {
+                return reject(errors);
             }
             resolve(stats);
         });
@@ -54,31 +63,23 @@ function removeWebpackProlog(source: string) {
     return result.trim();
 }
 
-beforeEach(() => {
-    fs.mkdirpSync('/src');
-});
-
-afterEach(() => {
-    fs.rmdirSync('/src');
-});
-
 it('smoke', async () => {
-    fs.writeFileSync('/src/entry.js', `console.log('Hi there')`);
+    fs.writeFileSync('/entry.js', `console.log('Hi there')`);
     const stats = await compile();
     const output = stats.compilation.assets['output.js'].source();
     expect(output).toContain(`console.log('Hi there')`);
 });
 
 it('import smoke', async () => {
-    fs.writeFileSync('/src/foo.js', `export const foo = () => console.log('foo')`);
-    fs.writeFileSync('/src/entry.js', `import { foo } from './foo'`);
+    fs.writeFileSync('/foo.js', `export const foo = () => console.log('foo')`);
+    fs.writeFileSync('/entry.js', `import { foo } from './foo'`);
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
     expect(output).toContain(`/* harmony import */ var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */ "./foo.js")`);
 });
 
 it('static import with options', async () => {
-    fs.writeFileSync('/src/entry.js', `import /* webpackIgnore: true */ './foo'`);
+    fs.writeFileSync('/entry.js', `import /* webpackIgnore: true */ './foo'`);
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
     expect(output).toContain(`import './foo'`);
@@ -86,7 +87,7 @@ it('static import with options', async () => {
 });
 
 it('static import all', async () => {
-    fs.writeFileSync('/src/entry.js', `import * as all /* webpackIgnore: true */ from './all'`);
+    fs.writeFileSync('/entry.js', `import * as all /* webpackIgnore: true */ from './all'`);
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
     expect(output).toContain(`import * as all from './all'`);
@@ -94,7 +95,7 @@ it('static import all', async () => {
 });
 
 it('multiple static import', async () => {
-    fs.writeFileSync('/src/entry.js', `
+    fs.writeFileSync('/entry.js', `
         import pokemon /* webpackIgnore: true */ from './pokemon';
         import /* webpackIgnore: true */ * as bundledUnicorn from './unicorn';
         `);
@@ -106,8 +107,8 @@ it('multiple static import', async () => {
     expect(output).not.toContain(`import /* webpackIgnore: true */ * as bundledUnicorn from './unicorn'`);
 });
 
-it('referencing ignored static import in bundle', async () => {
-    fs.writeFileSync('/src/entry.js', `
+fit('referencing ignored static import in bundle', async () => {
+    fs.writeFileSync('/entry.js', `
         import pokemon /* webpackIgnore: true */ from 'http://example.com/pokemon';
         pokemon('hi');
         console.log(typeof pokemon);

@@ -17,11 +17,13 @@ export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
 
     compiler.hooks.thisCompilation.tap('StaticImport', (compilation, { normalModuleFactory }) => {
 
-        normalModuleFactory.hooks.parser
-            .for('javascript/auto')
-            .tap('StaticImport', (parser, parserOptions) => {
-                parser.hooks.import.tap('StaticImport', importHandler.bind(undefined, importSources, parser));
-            });
+        function tapStaticImport(parser, parserOptions) {
+            parser.hooks.import.tap('StaticImport', importHandler.bind(undefined, importSources, parser));
+        }
+
+        normalModuleFactory.hooks.parser.for('javascript/auto').tap('StaticImport', tapStaticImport);
+        normalModuleFactory.hooks.parser.for('javascript/dynamic').tap('StaticImport', tapStaticImport);
+        normalModuleFactory.hooks.parser.for('javascript/esm').tap('StaticImport', tapStaticImport);
 
         compilation.hooks.succeedModule.tap('StaticImport', (module: any) => {
             if (importSources.has(module)) {
@@ -77,14 +79,15 @@ function importHandler(importSources, parser, statement, source) {
 
 function filterDependency(dependency: { constructor: { name: string } }) {
     return ![
-        'HarmonyExportDependencyTemplate',
+        'HarmonyExportImportedSpecifierDependency',
+        // 'HarmonyExportDependencyTemplate',
         'HarmonyCompatibilityDependency',
         'HarmonyInitDependency',
-        'HarmonyInitDependencyTemplate',
+        // 'HarmonyInitDependencyTemplate',
         'HarmonyImportSpecifierDependency',
-        'HarmonyImportSpecifierDependencyTemplate',
+        // 'HarmonyImportSpecifierDependencyTemplate',
         'HarmonyImportSideEffectDependency',
-        'HarmonyImportSideEffectDependencyTemplate',
+        // 'HarmonyImportSideEffectDependencyTemplate',
         // 'HarmonyAcceptImportDependency',
         // 'HarmonyAcceptImportDependencyTemplate',
     ].includes(dependency.constructor.name);
