@@ -75,7 +75,7 @@ it('import smoke', async () => {
     fs.writeFileSync('/entry.js', `import { foo } from './foo'`);
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
-    expect(output).toContain(`/* harmony import */ var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */ "./foo.js")`);
+    expect(output).toContain(`/* harmony import */ var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../foo */ "./foo.js")`);
 });
 
 it('static import with options', async () => {
@@ -107,7 +107,7 @@ it('multiple static import', async () => {
     expect(output).not.toContain(`import /* webpackIgnore: true */ * as bundledUnicorn from './unicorn'`);
 });
 
-fit('referencing ignored static import in bundle', async () => {
+it('referencing ignored static import in bundle', async () => {
     fs.writeFileSync('/entry.js', `
         import pokemon /* webpackIgnore: true */ from 'http://example.com/pokemon';
         pokemon('hi');
@@ -118,4 +118,17 @@ fit('referencing ignored static import in bundle', async () => {
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
     expect(output).toContain(`import pokemon from 'http://example.com/pokemon'`);
     expect(output).not.toContain(`MODULE_NOT_FOUND`);
+});
+
+it('nested import', async () => {
+    fs.writeFileSync('/entry.js', `import * as a from './a'`);
+    fs.writeFileSync('/a.js', `import * as b from './b'`);
+    fs.writeFileSync('/b.js', `
+        import /* webpackIgnore: true */ * as mod from '//mod'
+        export const b = 'b'
+        `);
+    const stats = await compile();
+    const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
+    expect(output).toContain(`import * as mod from '//mod'`);
+    expect(output).not.toContain(`import /* webpackIgnore: true */ * as mod from '//mod'`);
 });

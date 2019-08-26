@@ -17,6 +17,9 @@ export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
 
     compiler.hooks.thisCompilation.tap('StaticImport', (compilation, { normalModuleFactory }) => {
 
+        //compilation.dependencyFactories.set(ConstDependency, new NullFactory());
+        compilation.dependencyTemplates.set(ConstDependency, new ConstDependency.Template());
+
         function tapStaticImport(parser, parserOptions) {
             parser.hooks.import.tap('StaticImport', importHandler.bind(undefined, importSources, parser));
         }
@@ -33,6 +36,7 @@ export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
 
         compilation.hooks.optimizeChunkAssets.tap('StaticImport', (chunks) => {
             chunks.forEach(chunk => {
+                debugger;
                 if (importSources.has(chunk.entryModule)) {
                     chunk.files.forEach(fileName => {
                         compilation.assets[fileName] = new ConcatSource(
@@ -63,15 +67,22 @@ function importHandler(importSources, parser, statement, source) {
     }
 
     if (options && options.webpackIgnore) {
-        const module = parser.state.module;
-        if (!importSources.has(module)) {
-            importSources.set(module, []);
+        debugger;
+
+        let entryModule = parser.state.module;
+        // Get issuer
+        while (entryModule.issuer != undefined) {
+            entryModule = entryModule.issuer;
         }
-        importSources.get(module).push(statement);
+
+        if (!importSources.has(entryModule)) {
+            importSources.set(entryModule, []);
+        }
+        importSources.get(entryModule).push(statement);
 
         const clearDependency = new ConstDependency('', statement.range);
         clearDependency.loc = statement.loc;
-        module.addDependency(clearDependency);
+        parser.state.module.addDependency(clearDependency);
 
         return false;
     }
