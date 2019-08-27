@@ -11,9 +11,38 @@ export class StaticImportWebpackPlugin {
     apply = staticImportWebpackPlugin;
 }
 
+function createInterceptor(name) {
+    return {
+        name: 'StaticImport',
+        context: true,
+        call: () => {
+            debugger;
+        },
+        tap: (context, tap) => {
+            console.log(name, tap.name);
+        }
+    };
+}
+
 export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
 
     const importSources = new WeakMap();
+
+    // for (const [name, hook] of Object.entries(compiler.hooks)) {
+    //     hook.intercept(createInterceptor(name));
+    // }
+
+    // (<any>compiler).resolverFactory.hooks.resolveOptions
+    //     .for('normal')
+    //     .tap('StaticImport', resolveOptions => {
+    //         debugger
+    //     });
+
+    // (<any>compiler).resolverFactory.hooks.resolver
+    //     .for('normal')
+    //     .tap('StaticImport', resolver => {
+    //         debugger
+    //     });
 
     compiler.hooks.thisCompilation.tap('StaticImport', (compilation, { normalModuleFactory }) => {
 
@@ -69,9 +98,9 @@ function importHandler(importSources, parser, statement, source) {
 
         let entryModule = parser.state.module;
         // Get issuer
-        while (entryModule.issuer != undefined) {
-            entryModule = entryModule.issuer;
-        }
+        // while (entryModule.issuer != undefined) {
+        //     entryModule = entryModule.issuer;
+        // }
 
         if (!importSources.has(entryModule)) {
             importSources.set(entryModule, []);
@@ -88,15 +117,14 @@ function importHandler(importSources, parser, statement, source) {
 
 function filterDependency(dependency: { constructor: { name: string } }) {
     return ![
-        'HarmonyExportImportedSpecifierDependency',
-        // 'HarmonyExportDependencyTemplate',
         'HarmonyCompatibilityDependency',
+        'HarmonyExportDependencyTemplate',
         'HarmonyInitDependency',
-        // 'HarmonyInitDependencyTemplate',
+        'HarmonyInitDependencyTemplate',
         'HarmonyImportSpecifierDependency',
-        // 'HarmonyImportSpecifierDependencyTemplate',
+        'HarmonyImportSpecifierDependencyTemplate',
         'HarmonyImportSideEffectDependency',
-        // 'HarmonyImportSideEffectDependencyTemplate',
+        'HarmonyImportSideEffectDependencyTemplate',
         // 'HarmonyAcceptImportDependency',
         // 'HarmonyAcceptImportDependencyTemplate',
     ].includes(dependency.constructor.name);

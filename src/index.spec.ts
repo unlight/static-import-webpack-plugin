@@ -78,7 +78,7 @@ it('import smoke', async () => {
     expect(output).toContain(`/* harmony import */ var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../foo */ "./foo.js")`);
 });
 
-it('static import with options', async () => {
+fit('static import with options', async () => {
     fs.writeFileSync('/entry.js', `import /* webpackIgnore: true */ './foo'`);
     const stats = await compile();
     const output = removeWebpackProlog(stats.compilation.assets['output.js'].source());
