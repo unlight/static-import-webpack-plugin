@@ -36,7 +36,6 @@ export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
 
         compilation.hooks.optimizeChunkAssets.tap('StaticImport', (chunks) => {
             chunks.forEach(chunk => {
-                debugger;
                 if (importSources.has(chunk.entryModule)) {
                     chunk.files.forEach(fileName => {
                         compilation.assets[fileName] = new ConcatSource(
@@ -67,7 +66,6 @@ function importHandler(importSources, parser, statement, source) {
     }
 
     if (options && options.webpackIgnore) {
-        debugger;
 
         let entryModule = parser.state.module;
         // Get issuer
