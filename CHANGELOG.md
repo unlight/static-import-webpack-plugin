@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/unlight/static-import-webpack-plugin/compare/v1.0.1...v1.0.2) (2019-08-30)
+
+
+### Bug Fixes
+
+* Missed ConstDependency.Template ([3a60342](https://github.com/unlight/static-import-webpack-plugin/commit/3a60342))
+
 ## [1.0.1](https://github.com/unlight/static-import-webpack-plugin/compare/v1.0.0...v1.0.1) (2019-08-30)
 
 
