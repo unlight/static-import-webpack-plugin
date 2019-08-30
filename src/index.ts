@@ -17,6 +17,7 @@ export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
 }
 
 function thisCompilationTap(importSources, compilation, { normalModuleFactory }) {
+    compilation.dependencyTemplates.set(ConstDependency, new ConstDependency.Template());
     const boundParserImportTap = parserImportTap.bind(undefined, importSources);
     normalModuleFactory.hooks.parser.for('javascript/auto').tap('StaticImport', boundParserImportTap);
     normalModuleFactory.hooks.parser.for('javascript/dynamic').tap('StaticImport', boundParserImportTap);
