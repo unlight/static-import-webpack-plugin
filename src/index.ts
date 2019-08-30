@@ -49,8 +49,6 @@ function importTap(importSources, parser, statement, source, specifier, name) {
         }
     }
     if (options && options.webpackIgnore) {
-        (generate);
-        debugger
         const module = parser.state.module;
         if (!importSources.has(module)) {
             importSources.set(module, []);
@@ -67,7 +65,6 @@ function importTap(importSources, parser, statement, source, specifier, name) {
 
 function compilationOptimizeChunkAssetsTap(compilation, importSources, chunks) {
     chunks.forEach(chunk => {
-        debugger;
         if (importSources.has(chunk.entryModule)) {
             chunk.files.forEach(fileName => {
                 compilation.assets[fileName] = new ConcatSource(

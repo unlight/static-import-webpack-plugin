@@ -48,6 +48,7 @@
     "no-unnecessary-bind": false,
     "no-submodule-imports": false,
     "newline-per-chained-call": false,
+    "linebreak-style": false,
     ".": false
   }
 }
