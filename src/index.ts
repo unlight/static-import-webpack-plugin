@@ -9,41 +9,28 @@ import { generate } from 'astring';
  */
 export class StaticImportWebpackPlugin implements webpack.Plugin {
 
-    private importSources = new Map<string, any[]>();
+    private imports = new Map<string, string[]>();
+    readonly name = this.constructor.name;
 
     apply(compiler: webpack.Compiler) {
-        compiler.hooks.thisCompilation.tap('StaticImport', this.thisCompilationTap);
+        compiler.hooks.thisCompilation.tap(this.name, this.thisCompilationTap);
     }
 
     private thisCompilationTap = (compilation, { normalModuleFactory }) => {
         compilation.dependencyTemplates.set(ConstDependency, new ConstDependency.Template());
         ['javascript/auto', 'javascript/dynamic', 'javascript/esm'].forEach(type => {
-            normalModuleFactory.hooks.parser.for(type).tap('StaticImport', this.parserImportTap);
+            normalModuleFactory.hooks.parser.for(type).tap(this.name, (parser) => {
+                const boundImportTap = this.importTap.bind(this, parser);
+                parser.hooks.import.tap(this.name, boundImportTap);
+                parser.hooks.importSpecifier.tap(this.name, boundImportTap);
+            });
         });
-        const boundOptimizeChunkAssetsTap = this.compilationOptimizeChunkAssetsTap.bind(this, compilation);
-        compilation.hooks.optimizeChunkAssets.tap('StaticImport', boundOptimizeChunkAssetsTap);
-    }
-
-    private parserImportTap = (parser, parserOptions) => {
-        const boundImportTap = this.importTap.bind(this, parser);
-        parser.hooks.import.tap('StaticImport', boundImportTap);
-        parser.hooks.importSpecifier.tap('StaticImport', boundImportTap);
+        compilation.hooks.optimizeChunkAssets.tap(this.name, (chunks) => {
+            this.compilationOptimizeChunkAssetsTap(compilation, chunks);
+        });
     }
 
     private importTap = (parser, statement, source, specifier, name) => {
-        const module = parser.state.module;
-        let entryModule = module;
-        while (entryModule.issuer != undefined) {
-            entryModule = entryModule.issuer;
-        }
-        const moduleId = entryModule.debugId;
-        let statements: any[] = [];
-        if (this.importSources.has(moduleId)) {
-            statements = this.importSources.get(moduleId)!;
-        }
-        if (statements.includes(statement)) {
-            return false;
-        }
         const { options, errors } = parser.parseCommentOptions(statement.range);
         if (errors) {
             const warnings = errors.map(error => {
@@ -58,8 +45,21 @@ export class StaticImportWebpackPlugin implements webpack.Plugin {
             }
         }
         if (options && options.webpackIgnore) {
-            statements.push(statement);
-            this.importSources.set(moduleId, statements);
+            const module = parser.state.module;
+            let entryModule = module;
+            while (entryModule.issuer != undefined) {
+                entryModule = entryModule.issuer;
+            }
+            const moduleId = entryModule.debugId;
+            let declarations: string[] = [];
+            if (this.imports.has(moduleId)) {
+                declarations = this.imports.get(moduleId)!;
+            }
+            const declaration = generate(statement);
+            if (!declarations.includes(declaration)) {
+                declarations.push(declaration);
+                this.imports.set(moduleId, declarations);
+            }
             module.dependencies
                 .filter(this.isHarmonyImportDependency)
                 .forEach(dependency => module.removeDependency(dependency));
@@ -81,12 +81,11 @@ export class StaticImportWebpackPlugin implements webpack.Plugin {
     }
 
     private addImports = (compilation, chunk, entryModule) => {
-        if (!this.importSources.has(entryModule.debugId)) {
+        if (!this.imports.has(entryModule.debugId)) {
             return;
         }
         chunk.files.forEach(fileName => {
-            const importsForModule = this.importSources.get(entryModule.debugId)!
-                .map(statement => generate(statement))
+            const importsForModule = this.imports.get(entryModule.debugId)!
                 .join('\n');
             compilation.assets[fileName] = new ConcatSource(
                 importsForModule,
@@ -98,9 +97,9 @@ export class StaticImportWebpackPlugin implements webpack.Plugin {
 
     private isHarmonyImportDependency(dependency: { constructor: { name: string } }) {
         return [
+            'HarmonyImportSpecifierDependency',
             // 'HarmonyCompatibilityDependency',
             // 'HarmonyInitDependency',
-            'HarmonyImportSpecifierDependency',
             // 'HarmonyImportSideEffectDependency',
         ].includes(dependency.constructor.name);
     }
