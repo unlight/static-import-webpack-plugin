@@ -44,9 +44,6 @@ var $lib = ... // webpackBootstrap + bundled unicorn
 ## Related Projects
 - https://github.com/purtuga/esm-webpack-plugin
 
-## TODO
-* Minifcation removes
-
 ## Development
 
 ### Example

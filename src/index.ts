@@ -9,14 +9,14 @@ import { generate } from 'astring';
  */
 export class StaticImportWebpackPlugin implements webpack.Plugin {
 
-    private imports = new Map<string, string[]>();
     readonly name = this.constructor.name;
+    private readonly imports = new Map<string, string[]>();
 
     apply(compiler: webpack.Compiler) {
         compiler.hooks.thisCompilation.tap(this.name, this.thisCompilationTap);
     }
 
-    private thisCompilationTap = (compilation, { normalModuleFactory }) => {
+    private readonly thisCompilationTap = (compilation, { normalModuleFactory }) => {
         compilation.dependencyTemplates.set(ConstDependency, new ConstDependency.Template());
         ['javascript/auto', 'javascript/dynamic', 'javascript/esm'].forEach(type => {
             normalModuleFactory.hooks.parser.for(type).tap(this.name, (parser) => {
@@ -30,7 +30,7 @@ export class StaticImportWebpackPlugin implements webpack.Plugin {
         });
     }
 
-    private importTap = (parser, statement, source, specifier, name) => {
+    private readonly importTap = (parser, statement, source, specifier, name) => {
         const { options, errors } = parser.parseCommentOptions(statement.range);
         if (errors) {
             const warnings = errors.map(error => {
@@ -51,10 +51,7 @@ export class StaticImportWebpackPlugin implements webpack.Plugin {
                 entryModule = entryModule.issuer;
             }
             const moduleId = entryModule.debugId;
-            let declarations: string[] = [];
-            if (this.imports.has(moduleId)) {
-                declarations = this.imports.get(moduleId)!;
-            }
+            const declarations: string[] = this.imports.get(moduleId) || [];
             const declaration = generate(statement);
             if (!declarations.includes(declaration)) {
                 declarations.push(declaration);
@@ -63,24 +60,29 @@ export class StaticImportWebpackPlugin implements webpack.Plugin {
             module.dependencies
                 .filter(this.isHarmonyImportDependency)
                 .forEach(dependency => module.removeDependency(dependency));
-            module.addDependency(new ConstDependency('', statement.range));
+            const emptyDependency = module.dependencies.find(d => d.expression === '' && d.range && d.range[0] === statement.range[0] && d.range[1] === statement.range[1]);
+            if (!emptyDependency) {
+                module.addDependency(new ConstDependency('', statement.range));
+            }
             return false;
         }
     }
 
-    private compilationOptimizeChunkAssetsTap = (compilation, chunks: any[]) => {
+    private readonly compilationOptimizeChunkAssetsTap = (compilation, chunks: any[]) => {
         chunks.forEach(chunk => {
             if (chunk.entryModule.constructor.name === 'MultiModule') {
                 chunk.entryModule.dependencies.forEach(dependency => {
                     this.addImports(compilation, chunk, dependency.module);
                 });
+            } else if (chunk.entryModule.constructor.name === 'ConcatenatedModule') {
+                this.addImports(compilation, chunk, chunk.entryModule.rootModule);
             } else {
                 this.addImports(compilation, chunk, chunk.entryModule);
             }
         });
     }
 
-    private addImports = (compilation, chunk, entryModule) => {
+    private readonly addImports = (compilation, chunk, entryModule) => {
         if (!this.imports.has(entryModule.debugId)) {
             return;
         }

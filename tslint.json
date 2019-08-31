@@ -49,6 +49,7 @@
     "no-submodule-imports": false,
     "newline-per-chained-call": false,
     "linebreak-style": false,
+    "triple-equals": [true, "allow-undefined-check"],
     ".": false
   }
 }
