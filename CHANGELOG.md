@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/unlight/static-import-webpack-plugin/compare/v1.0.2...v1.1.0) (2019-08-31)
+
+
+### Features
+
+* Ignored imports from nested modules ([a388335](https://github.com/unlight/static-import-webpack-plugin/commit/a388335))
+
 ## [1.0.2](https://github.com/unlight/static-import-webpack-plugin/compare/v1.0.1...v1.0.2) (2019-08-30)
 
 
