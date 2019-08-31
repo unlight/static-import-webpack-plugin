@@ -7,88 +7,101 @@ import { generate } from 'astring';
 /**
  * Moves static import in webpack bundle to top level by using special comment webpackIgnore: true
  */
-export class StaticImportWebpackPlugin {
-    apply = staticImportWebpackPlugin;
-}
+export class StaticImportWebpackPlugin implements webpack.Plugin {
 
-export function staticImportWebpackPlugin(compiler: webpack.Compiler) {
-    const importSources = new WeakMap();
-    compiler.hooks.thisCompilation.tap('StaticImport', thisCompilationTap.bind(undefined, importSources));
-}
+    private importSources = new Map<string, any[]>();
 
-function thisCompilationTap(importSources, compilation, { normalModuleFactory }) {
-    compilation.dependencyTemplates.set(ConstDependency, new ConstDependency.Template());
-    const boundParserImportTap = parserImportTap.bind(undefined, importSources);
-    normalModuleFactory.hooks.parser.for('javascript/auto').tap('StaticImport', boundParserImportTap);
-    normalModuleFactory.hooks.parser.for('javascript/dynamic').tap('StaticImport', boundParserImportTap);
-    normalModuleFactory.hooks.parser.for('javascript/esm').tap('StaticImport', boundParserImportTap);
-    compilation.hooks.optimizeChunkAssets.tap('StaticImport', compilationOptimizeChunkAssetsTap.bind(undefined, compilation, importSources));
-}
-
-function parserImportTap(importSources, parser, parserOptions) {
-    const boundImportTap = importTap.bind(undefined, importSources, parser);
-    parser.hooks.import.tap('StaticImport', boundImportTap);
-    parser.hooks.importSpecifier.tap('StaticImport', boundImportTap);
-}
-
-function importTap(importSources, parser, statement, source, specifier, name) {
-    const module = parser.state.module;
-    if (importSources.has(module) && importSources.get(module).includes(statement)) {
-        return false;
+    apply(compiler: webpack.Compiler) {
+        compiler.hooks.thisCompilation.tap('StaticImport', this.thisCompilationTap);
     }
-    const { options, errors } = parser.parseCommentOptions(statement.range);
-    if (errors) {
-        const warnings = errors.map(error => {
-            return new CommentCompilationWarning(
-                `Compilation error while processing comment(-s): /*${error.comment.value}*/: ${error.message}`,
-                parser.state.module,
-                error.comment.loc,
-            );
+
+    private thisCompilationTap = (compilation, { normalModuleFactory }) => {
+        compilation.dependencyTemplates.set(ConstDependency, new ConstDependency.Template());
+        ['javascript/auto', 'javascript/dynamic', 'javascript/esm'].forEach(type => {
+            normalModuleFactory.hooks.parser.for(type).tap('StaticImport', this.parserImportTap);
         });
-        if (warnings.length > 0) {
-            parser.state.module.warnings.push(...warnings);
-        }
+        const boundOptimizeChunkAssetsTap = this.compilationOptimizeChunkAssetsTap.bind(this, compilation);
+        compilation.hooks.optimizeChunkAssets.tap('StaticImport', boundOptimizeChunkAssetsTap);
     }
-    if (options && options.webpackIgnore) {
+
+    private parserImportTap = (parser, parserOptions) => {
+        const boundImportTap = this.importTap.bind(this, parser);
+        parser.hooks.import.tap('StaticImport', boundImportTap);
+        parser.hooks.importSpecifier.tap('StaticImport', boundImportTap);
+    }
+
+    private importTap = (parser, statement, source, specifier, name) => {
         const module = parser.state.module;
-        if (!importSources.has(module)) {
-            importSources.set(module, []);
+        let entryModule = module;
+        while (entryModule.issuer != undefined) {
+            entryModule = entryModule.issuer;
         }
-        importSources.get(module).push(statement);
-        module.dependencies
-            .filter(isHarmonyImportDependency)
-            .forEach(dependency => module.removeDependency(dependency));
-
-        module.addDependency(new ConstDependency('', statement.range));
-        return false;
-    }
-}
-
-function compilationOptimizeChunkAssetsTap(compilation, importSources, chunks) {
-    chunks.forEach(chunk => {
-        if (importSources.has(chunk.entryModule)) {
-            chunk.files.forEach(fileName => {
-                compilation.assets[fileName] = new ConcatSource(
-                    importsForModule(importSources, chunk.entryModule),
-                    '\n\n',
-                    compilation.assets[fileName],
+        const moduleId = entryModule.debugId;
+        let statements: any[] = [];
+        if (this.importSources.has(moduleId)) {
+            statements = this.importSources.get(moduleId)!;
+        }
+        if (statements.includes(statement)) {
+            return false;
+        }
+        const { options, errors } = parser.parseCommentOptions(statement.range);
+        if (errors) {
+            const warnings = errors.map(error => {
+                return new CommentCompilationWarning(
+                    `Compilation error while processing comment(-s): /*${error.comment.value}*/: ${error.message}`,
+                    parser.state.module,
+                    error.comment.loc,
                 );
             });
+            if (warnings.length > 0) {
+                parser.state.module.warnings.push(...warnings);
+            }
         }
-    });
-}
+        if (options && options.webpackIgnore) {
+            statements.push(statement);
+            this.importSources.set(moduleId, statements);
+            module.dependencies
+                .filter(this.isHarmonyImportDependency)
+                .forEach(dependency => module.removeDependency(dependency));
+            module.addDependency(new ConstDependency('', statement.range));
+            return false;
+        }
+    }
 
-function importsForModule(importSources: WeakMap<object, any>, module: any) {
-    return importSources.get(module)
-        .map(generate)
-        .join('\n');
-}
+    private compilationOptimizeChunkAssetsTap = (compilation, chunks: any[]) => {
+        chunks.forEach(chunk => {
+            if (chunk.entryModule.constructor.name === 'MultiModule') {
+                chunk.entryModule.dependencies.forEach(dependency => {
+                    this.addImports(compilation, chunk, dependency.module);
+                });
+            } else {
+                this.addImports(compilation, chunk, chunk.entryModule);
+            }
+        });
+    }
 
-function isHarmonyImportDependency(dependency: { constructor: { name: string } }) {
-    return [
-        'HarmonyCompatibilityDependency',
-        'HarmonyInitDependency',
-        'HarmonyImportSpecifierDependency',
-        // 'HarmonyImportSideEffectDependency',
-    ].includes(dependency.constructor.name);
+    private addImports = (compilation, chunk, entryModule) => {
+        if (!this.importSources.has(entryModule.debugId)) {
+            return;
+        }
+        chunk.files.forEach(fileName => {
+            const importsForModule = this.importSources.get(entryModule.debugId)!
+                .map(statement => generate(statement))
+                .join('\n');
+            compilation.assets[fileName] = new ConcatSource(
+                importsForModule,
+                '\n\n',
+                compilation.assets[fileName],
+            );
+        });
+    }
+
+    private isHarmonyImportDependency(dependency: { constructor: { name: string } }) {
+        return [
+            'HarmonyCompatibilityDependency',
+            'HarmonyInitDependency',
+            'HarmonyImportSpecifierDependency',
+            // 'HarmonyImportSideEffectDependency',
+        ].includes(dependency.constructor.name);
+    }
 }

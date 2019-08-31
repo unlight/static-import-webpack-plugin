@@ -1,6 +1,6 @@
 /* tslint:disable:no-implicit-dependencies no-any no-duplicate-string */
 import * as webpack from 'webpack';
-import { staticImportWebpackPlugin } from '.';
+import { StaticImportWebpackPlugin } from '.';
 import MemoryFS = require('memory-fs');
 
 const fs = new MemoryFS();
@@ -45,7 +45,7 @@ async function compile(customOptions = {}) {
     (<any>compiler).resolvers.normal.fileSystem = fs;
     (<any>compiler).resolvers.context.fileSystem = fs;
 
-    staticImportWebpackPlugin(compiler);
+    new StaticImportWebpackPlugin().apply(compiler);
     return new Promise<webpack.Stats>((resolve, reject) => {
         compiler.run((error, stats) => {
             if (error) {
@@ -146,4 +146,28 @@ it('import side effects', async () => {
     expect(output).toContain(`import 'b'`);
     expect(output).not.toContain(`import /* webpackIgnore: true */ 'a'`);
     expect(output).not.toContain(`import /* webpackIgnore: true */ 'b'`);
+});
+
+it('nested imports', async () => {
+    fs.writeFileSync('/entry.js', `import a from './a'`);
+    fs.writeFileSync('/a.js', `import * as b from './b'`);
+    fs.writeFileSync('/b.js', `
+        import /* webpackIgnore: true */ * as mod from '//mod'
+        export const b = 'b'
+        `);
+    const stats = await compile();
+    const output = getOutput(stats.compilation.assets['output.js'].source());
+    expect(output).toContain(`import * as mod from '//mod'`);
+    expect(output).not.toContain(`import /* webpackIgnore: true */ * as mod from '//mod'`);
+});
+
+xit('function exports should not be removed', async () => {
+    fs.writeFileSync('/entry.js', `import { a } from './a'`);
+    fs.writeFileSync('/a.js', `
+        import b /* webpackIgnore: true */ from 'b'
+        export function a() { console.log() }
+        `);
+    const stats = await compile();
+    const output = getOutput(stats.compilation.assets['output.js'].source());
+    expect(output).toContain(`/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return a; })`);
 });
