@@ -1,6 +1,8 @@
 # static-import-webpack-plugin
-Moves static import in webpack bundle to top level by using special comment `/* webpackIgnore: true */`.
-With combination [esm-webpack-plugin](https://github.com/purtuga/esm-webpack-plugin) allow to generate EcmaScript module.
+Duck taped solution to move static imports in webpack bundle to top level 
+by using special comment `/* webpackIgnore: true */`.  
+With combination [esm-webpack-plugin](https://github.com/purtuga/esm-webpack-plugin) allow to generate EcmaScript module.  
+See example at https://github.com/unlight/webhive/tree/microfrontend/src/webhive.frontend
 
 ## Install
 ```sh
