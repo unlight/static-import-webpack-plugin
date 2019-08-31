@@ -1,3 +1,12 @@
+## [1.1.1](https://github.com/unlight/static-import-webpack-plugin/compare/v1.1.0...v1.1.1) (2019-08-31)
+
+
+### Bug Fixes
+
+* Duplicated import on rebuild ([904ded4](https://github.com/unlight/static-import-webpack-plugin/commit/904ded4))
+* Export function should not be removed ([18a8324](https://github.com/unlight/static-import-webpack-plugin/commit/18a8324))
+* Import disappears on minification issue ([af25ffb](https://github.com/unlight/static-import-webpack-plugin/commit/af25ffb))
+
 # [1.1.0](https://github.com/unlight/static-import-webpack-plugin/compare/v1.0.2...v1.1.0) (2019-08-31)
 
 
