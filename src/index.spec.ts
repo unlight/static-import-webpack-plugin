@@ -161,11 +161,13 @@ it('nested imports', async () => {
     expect(output).not.toContain(`import /* webpackIgnore: true */ * as mod from '//mod'`);
 });
 
-xit('function exports should not be removed', async () => {
+it('function exports should not be removed', async () => {
     fs.writeFileSync('/entry.js', `import { a } from './a'`);
     fs.writeFileSync('/a.js', `
+        // import b was here -->
         import b /* webpackIgnore: true */ from 'b'
-        export function a() { console.log() }
+        // <-- import b was here
+        export function a() { console.log(b) }
         `);
     const stats = await compile();
     const output = getOutput(stats.compilation.assets['output.js'].source());

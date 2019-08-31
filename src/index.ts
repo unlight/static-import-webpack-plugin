@@ -98,8 +98,8 @@ export class StaticImportWebpackPlugin implements webpack.Plugin {
 
     private isHarmonyImportDependency(dependency: { constructor: { name: string } }) {
         return [
-            'HarmonyCompatibilityDependency',
-            'HarmonyInitDependency',
+            // 'HarmonyCompatibilityDependency',
+            // 'HarmonyInitDependency',
             'HarmonyImportSpecifierDependency',
             // 'HarmonyImportSideEffectDependency',
         ].includes(dependency.constructor.name);
